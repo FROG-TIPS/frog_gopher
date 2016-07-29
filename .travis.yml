@@ -10,3 +10,5 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+
+# burp
