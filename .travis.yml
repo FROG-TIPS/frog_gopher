@@ -1,14 +1,84 @@
 language: rust
 cache: cargo
 
+env:
+  global:
+    - PROJECT_NAME=frog_gopher
+    - MAKE_DEB=yes
+    - DEB_MAINTAINER="FROG SYSTEMS INC <support@frog.tips>"
+    - DEB_DESCRIPTION="EXPLORE THE WONDERFUL WORLD OF FROG TIPS WITH THIS GOPGER SERVER."
+
 rust:
-  - 1.8.0
   - stable
   - beta
   - nightly
-  
+
 matrix:
+  include:
+    - os: osx
+      rust: stable
+      env: TARGET=i686-apple-darwin
+    - os: linux
+      rust: stable
+      env: TARGET=i686-unknown-linux-gnu
+      addons:
+        apt:
+          packages: &i686_unknown_linux_gnu
+            # Cross compiler and cross compiled C libraries
+            - gcc-multilib
+    - os: linux
+      rust: stable
+      env: TARGET=i686-unknown-linux-musl
+    - os: osx
+      rust: stable
+      env: TARGET=x86_64-apple-darwin
+    - os: linux
+      rust: stable
+      env: TARGET=x86_64-unknown-linux-gnu
+    - os: linux
+      rust: stable
+      env: TARGET=x86_64-unknown-linux-musl
   allow_failures:
+    - os: linux
+      rust: stable
+      env: TARGET=i686-unknown-linux-musl
     - rust: nightly
+
+before_install:
+  - export PATH="$PATH:$HOME/.cargo/bin"
+
+branches:
+  only:
+    # Pushes and PR to the master branch
+    - master
+    # IMPORTANT Ruby regex to match tags. Required, or travis won't trigger deploys when a new tag
+    # is pushed. This regex matches semantic versions like v1.2.3-rc4+2016.02.22
+    - /^v\d+\.\d+\.\d+.*$/
+
+install:
+  - bash ci/install.sh
+
+script:
+  - bash ci/script.sh
+
+before_deploy:
+  - bash ci/before_deploy.sh
+
+deploy:
+  provider: releases
+  api_key:
+    secure: lDCG7T0CTzKhFk5QNwaI6d+DyJcB44ZLrMpqsHKJ84ez4G/NG7o06obS9qXxU/SXHrWJsYnoDZEd6rg72lrHw0XJcuftQB3Vc8Fv4d+tMXoNnsxkiD10c4sfoXh9iNW6D3phqA8LBARa2hBFB6L4gdr5yOgKcba13EAEvDMT1YEIyw4pUP6nJZLWx+fS2Cx9uNKTHMU2461NM+opU9ejCtLEmSE1FoolqSx/k0eFKGcpz7VvINKwPyQhxrLjWw6YFOfOsu8MC8XNTQqjCJ3rnee3z7M3/iN5cKIcBQFkcsPJRQ6Gh3vyWzP3q8SqyC1oWUALXRhDjDsh3iy+JrxhcX+FwQPBoBqfChqriWFBN46vZwN8Pv44U8whFBqXj6RGKgMv9fFjsrKFDla5Rx1QbqnVIVZihfMuSCVFl8PUdQeoXJSzjYJ7cT1EXPsfAyNoU4U2gr6Wtw6drwNHqYRNfVsvnwA/UTjFvqvjTYqRGchyNhtuPGqpD0fn2jgEDddGMssMh1GxlCRkhfYPMpwDibdUERt9nFWTEcXgrt/kinphRUHXFIL2PFLwzWQN9Ks5VKCtE4hXncGa023Y53ue6Tgz5pLQ+BoG7LGSsH9YO8jpuJeCNtTfQHPWgbfl1Anlrz6MLb5EkQniSZD8vDHMiEDUdbG3hrQeH/DDm3pKGrU=
+  file_glob: true
+  file: ${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.*
+  # don't delete the artifacts from previous phases
+  skip_cleanup: true
+  # deploy when a new tag is pushed
+  on:
+    condition: $TRAVIS_RUST_VERSION = stable
+    tags: true
+
+notifications:
+  email:
+    on_success: never
 
 # burp
