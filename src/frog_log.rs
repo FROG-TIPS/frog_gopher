@@ -1,5 +1,7 @@
 extern crate log;
 
+use time;
+use std::thread;
 use log::{LogRecord,LogLevel,LogLevelFilter,LogMetadata,SetLoggerError};
 
 
@@ -12,7 +14,11 @@ impl log::Log for FrogLogger {
 
     fn log(&self, record: &LogRecord) {
         if self.enabled(record.metadata()) {
-            println!("{}: {}", record.level(), record.args());
+            let thread = thread::current();
+            let thread_name = thread.name().unwrap_or("");
+            let now = time::now_utc();
+            let formatted_now = now.rfc3339();
+            println!("{} {} {} {}", formatted_now, thread_name, record.level(), record.args());
         }
     }
 }

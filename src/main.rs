@@ -8,6 +8,7 @@ extern crate itertools;
 extern crate rustc_serialize;
 extern crate hyper;
 extern crate getopts;
+extern crate time;
 
 mod frog_log;
 mod protocol;
@@ -116,6 +117,7 @@ fn main() {
                                 Mutex::new(
                                     the_impl_ya_dummy::Gopher::new(config.ext_addr, config.frog_tips_api_key)));
 
+        info!("FROG IS NOW PLAYING WITH GOPHERS");
         for stream in listener.incoming() {
             match stream {
                 Err(why) => {
@@ -127,14 +129,14 @@ fn main() {
                             let my_thread_name = format!("GOPHER_{}", addr);
                             let my_gopher = shared_gopher.clone();
 
-                            let _ = thread::Builder::new().name(my_thread_name.clone())
+                            let _ = thread::Builder::new().name(my_thread_name)
                                                           .spawn(move || {
-                                                              info!("{0} HAS POPPED OUT OF ITS BURROW.", my_thread_name);
+                                                              info!("A GOPHER HAS POPPED OUT OF ITS BURROW.");
 
                                                               let mut gopher = my_gopher.lock().unwrap();
                                                               match gopher.respond(stream) {
-                                                                  Ok(_) => info!("{} HAS RETREATED INTO ITS BURROW ON GOOD TERMS. GOODBYE GOPHER.", my_thread_name),
-                                                                  Err(why) => error!("{name} HAS RETREATED INTO ITS BURROW ON BAD TERMS: {why}", name=my_thread_name, why=why),
+                                                                  Ok(_) => info!("A GOPHER HAS RETREATED INTO ITS BURROW ON GOOD TERMS. GOODBYE GOPHER."),
+                                                                  Err(why) => error!("A GOPHER HAS RETREATED INTO ITS BURROW ON BAD TERMS: {}", why),
                                                               }
                             });
                         },

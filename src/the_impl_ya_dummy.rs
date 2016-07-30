@@ -1,3 +1,34 @@
+mod bogus_source {
+    use protocol::{MenuItem,Path,Selected};
+    use super::menu::{Source,MenuItemIter};
+
+    pub struct BogusSource {
+        path: Path,
+        desc: String,
+    }
+
+    impl BogusSource {
+        pub fn new<S: Into<String>>(path: Path, desc: S) -> BogusSource {
+            BogusSource {
+                path: path,
+                desc: desc.into(),
+            }
+        }
+    }
+
+    impl Source for BogusSource {
+        fn find(&self, path: &Path) -> Option<Selected> {
+            None
+        }
+
+        fn menu_items(&self) -> MenuItemIter {
+            MenuItemIter::new(vec![MenuItem::Text {
+                path: self.path.clone(),
+                desc: self.desc.clone(),
+            }])
+        }
+    }
+}
 
 mod text_source {
     use protocol::{MenuItem,Path,Selected};
@@ -109,7 +140,7 @@ mod tip_source {
                    Ok(Some(tip))
                },
                other => {
-                   info!("{:?}", other);
+                   warn!("NO TIP FOUND BECASE: {:?}", other);
                    Ok(None)
                }
            }
@@ -130,7 +161,8 @@ mod tip_source {
                     let results: SearchResults = try!(json::decode(&body));
                     Ok(results.results)
                 },
-                _ => {
+                other => {
+                    warn!("NO TIPS FOUND BECAUSE: {:?}", other);
                     Ok(vec![])
                 }
             }
@@ -148,7 +180,7 @@ mod tip_source {
                         None
                     }
                     Err(why) => {
-                        warn!("ERROR: {:?}", why);
+                        warn!("COULD NOT PROVIDE TIP {}: {:?}", path, why);
                         None
                     }
                 }
@@ -169,7 +201,7 @@ mod tip_source {
                         .collect()
                 },
                 Err(why) => {
-                    warn!("ERROR: {:?}", why);
+                    warn!("COULD NOT PROVIDE TIPS: {:?}", why);
                     vec![]
                 }
             };
@@ -206,6 +238,7 @@ mod tip_source {
 mod menu {
     use super::text_source::TextSource;
     use super::tip_source::TipSource;
+    use super::bogus_source::BogusSource;
     use protocol::{Selected,Menu,MenuItem,Path};
 
 
@@ -225,12 +258,55 @@ YOU ARE NOW CONNECTED TO THE LATEST IN
 FROG SYSTEMS TECHNOLOGY.
 
 FEEL FREE TO BROWSE AND DOWN-LOAD ALL
-TWEETED FROG TIPS.
+TWEETED FROG TIPS IN ADDITIONAL TO
+VALUABLE RESOURCES FOR YOUR FROG.
+"#;
+
+    const FROG_MODELS: &'static str = r#"
+FROG
+FROG NANO
+FROG JUMBO
+FROG CLASSIC (KNOWN AS FROG L'ORIGINAL IN QUÉBEC)
+FR-10 (INTENDED FOR HEAVY MANUFACTORY USE ONLY. NOT AVAILABLE FOR CONSUMER RESALE)
+FROG TOUCH
+REACH OUT AND TOUCH FROG
+PERSONAL FROG
+WIKI FROG (OCEANIA MODEL)
+FROG KIWI (OCEANIA MODEL)
+"#;
+
+    const FIRMWARE_V2: &'static str = r#"
+# (C) FROG SYSTEMS 1993
+[DEF FROG [] [
+    [LET
+        [
+            [DEF T_TIME [SGR BRW_T STP_T] [
+                [DO
+                    [POR SGR [ON ME]]
+                    [BRW BRW_T]
+                    [STP STP_T]
+                    [DRNK]
+                    [LD DSHWSHR]
+                ]
+            ]]
+            [DEF SGR 1]
+            [DEF BRW [MIN 2]]
+            [DEF STP [MIN 2]]
+            [DEF ENCLV 18003625283]
+        ]
+        [DO
+            [PRNT "WELCOME, FRIEND"]
+            [TP_TOE [THRU 2 LIPS]]
+            [PRNT "SLURP"]
+            # FIXME: LIPS WILL NOT STOP SMACKING AFTER THIS STEP!!!
+            [T_TIME SGR BRW STP]
+            [CALL ENCLV]
+        ]
+    ]
+]
 "#;
 
     pub struct RootMenu {
-        // text_source: TextSource,
-        // tip_source: TipSource,
         sources: Vec<Box<Source>>,
     }
 
@@ -240,6 +316,15 @@ TWEETED FROG TIPS.
                 sources: vec![
                     Box::new(
                         TextSource::new(Path::from("/README"), "READ ALL ABOUT FROG, THE LATEST SENSATION.", README),
+                    ),
+                    Box::new(
+                        BogusSource::new(Path::from("/USER_MANUAL"), "FROG USER MANUAL (EN) 17TH REV. INCLUDING APPENDICES."),
+                    ),
+                    Box::new(
+                        TextSource::new(Path::from("/FROG_MODELS"), "NON-CANON FROG MODEL LISTING.", FROG_MODELS),
+                    ),
+                    Box::new(
+                        TextSource::new(Path::from("/FIRMWARE_V2"), "FROG V2 FIRMWARE FOR ALL NON-OCEANIA MODELS", FIRMWARE_V2),
                     ),
                     Box::new(
                         TipSource::new(frog_tips_api_key),
