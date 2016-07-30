@@ -14,6 +14,11 @@ rust:
   - beta
   - nightly
 
+addons:
+  apt:
+    packages:
+      - libssl-dev
+
 matrix:
   include:
     - os: osx
