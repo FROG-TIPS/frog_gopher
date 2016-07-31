@@ -41,6 +41,7 @@ matrix:
       rust: stable
       env: TARGET=i686-unknown-linux-musl
     - rust: nightly
+    - rust: beta
 
 before_install:
   - export PATH="$PATH:$HOME/.cargo/bin"
