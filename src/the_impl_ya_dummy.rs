@@ -149,9 +149,17 @@ mod tip_source {
 
     impl TipSource {
         pub fn new(api_key: String) -> TipSource {
+            let client = {
+                let mut client = hyper::Client::new();
+                let ten_seconds = Some(::std::time::Duration::from_secs(10));
+                client.set_read_timeout(ten_seconds);
+                client.set_write_timeout(ten_seconds);
+                client
+            };
+
             TipSource {
                 api_key: api_key,
-                client: hyper::Client::new(),
+                client: client,
             }
         }
 
@@ -380,6 +388,7 @@ FROG KIWI (OCEANIA MODEL)
         }
 
         pub fn find(&self, path: &Path) -> Selected {
+            info!("PATH: '{}'", path);
             self.sources.iter()
                         .filter_map(|s| s.find(path))
                         .nth(0)

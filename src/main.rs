@@ -105,6 +105,7 @@ mod cli {
 use std::net::{TcpListener};
 use std::thread;
 use std::sync::{Arc,Mutex};
+use std::time::Duration;
 
 
 fn main() {
@@ -128,6 +129,12 @@ fn main() {
                         Ok(addr) => {
                             let my_thread_name = format!("GOPHER_{}", addr);
                             let my_gopher = shared_gopher.clone();
+
+                            {
+                                let just_a_wee_bit = Some(Duration::from_secs(60));
+                                let _ = stream.set_read_timeout(just_a_wee_bit);
+                                let _ = stream.set_write_timeout(just_a_wee_bit);
+                            }
 
                             let _ = thread::Builder::new().name(my_thread_name)
                                                           .spawn(move || {
