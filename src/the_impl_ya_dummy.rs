@@ -223,7 +223,8 @@ mod tip_source {
                 Ok(tips) => {
                     tips.into_iter()
                         .sorted_by(|t1, t2| {
-                            Ord::cmp(&t1.tweeted, &t2.tweeted)
+                            // Latest first
+                            Ord::cmp(&t2.tweeted, &t1.tweeted)
                         })
                         .into_iter()
                         .map(|t| {
