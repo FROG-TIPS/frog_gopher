@@ -17,13 +17,42 @@ mod bogus_source {
     }
 
     impl Source for BogusSource {
-        fn find(&self, path: &Path) -> Option<Selected> {
+        fn find(&self, _: &Path) -> Option<Selected> {
             None
         }
 
         fn menu_items(&self) -> MenuItemIter {
             MenuItemIter::new(vec![MenuItem::Text {
                 path: self.path.clone(),
+                desc: self.desc.clone(),
+            }])
+        }
+    }
+}
+
+mod info_source {
+    use protocol::{MenuItem,Path,Selected};
+    use super::menu::{Source,MenuItemIter};
+
+    pub struct InfoSource {
+        desc: String,
+    }
+
+    impl InfoSource {
+        pub fn new<S: Into<String>>(desc: S) -> InfoSource {
+            InfoSource {
+                desc: desc.into(),
+            }
+        }
+    }
+
+    impl Source for InfoSource {
+        fn find(&self, _: &Path) -> Option<Selected> {
+            None
+        }
+
+        fn menu_items(&self) -> MenuItemIter {
+            MenuItemIter::new(vec![MenuItem::Info {
                 desc: self.desc.clone(),
             }])
         }
@@ -239,27 +268,31 @@ mod menu {
     use super::text_source::TextSource;
     use super::tip_source::TipSource;
     use super::bogus_source::BogusSource;
+    use super::info_source::InfoSource;
     use protocol::{Selected,Menu,MenuItem,Path};
 
 
     const README: &'static str = r#"
-       _   _          ___  ___  _   __
-      (o)-(o)        | __|| o \/ \ / _|
-   .-(   "   )-.     | _| |   ( o | |_n
-  /  /`'-=-'`\  \    |_|  |_|\\\_/ \__/
-__\ _\ \___/ /_ /__   ___  _  ___  __
-  /|  /|\ /|\  |\    |_ _|| || o \/ _|
-                      | | | ||  _/\_ \
-                      |_| |_||_|  |__/
+           _   _          ___  ___  _   __
+          (o)-(o)        | __|| o \/ \ / _|
+       .-(   "   )-.     | _| |   ( o | |_n
+      /  /`'-=-'`\  \    |_|  |_|\\\_/ \__/
+    __\ _\ \___/ /_ /__   ___  _  ___  __
+      /|  /|\ /|\  |\    |_ _|| || o \/ _|
+                          | | | ||  _/\_ \
+                          |_| |_||_|  |__/
 
-    W E L C O M E ,  F R I E N D
+        W E L C O M E ,  F R I E N D
 
-YOU ARE NOW CONNECTED TO THE LATEST IN
-FROG SYSTEMS TECHNOLOGY.
+YOU ARE NOW CONNECTED TO THE LATEST IN FROG SYSTEMS
+TECHNOLOGY.
 
-FEEL FREE TO BROWSE AND DOWN-LOAD ALL
-TWEETED FROG TIPS IN ADDITIONAL TO
-VALUABLE RESOURCES FOR YOUR FROG.
+FEEL FREE TO BROWSE AND DOWN-LOAD ALL TWEETED FROG
+TIPS IN ADDITIONAL TO VALUABLE RESOURCES FOR YOUR FROG.
+
+MAIN WEB CORNER:       HTTPS://FROG.TIPS
+TECHNICAL RESOURCES:   HTTPS://GITHUB.COM/FROG-TIPS
+CONTACT:               ROOT@FROG.TIPS
 "#;
 
     const FROG_MODELS: &'static str = r#"
@@ -314,6 +347,10 @@ FROG KIWI (OCEANIA MODEL)
         pub fn new(frog_tips_api_key: String) -> RootMenu {
             RootMenu {
                 sources: vec![
+                    // Print the README as a banner as well
+                    Box::new(
+                        InfoSource::new(README),
+                    ),
                     Box::new(
                         TextSource::new(Path::from("/README"), "READ ALL ABOUT FROG, THE LATEST SENSATION.", README),
                     ),
@@ -337,7 +374,9 @@ FROG KIWI (OCEANIA MODEL)
             self.sources.iter()
                         .filter_map(|s| s.find(path))
                         .nth(0)
-                        .unwrap_or(Selected::Unknown)
+                        .unwrap_or(Selected::Error(
+                            Box::new(
+                                format!("{} NOT FOUND.", path))))
         }
     }
 

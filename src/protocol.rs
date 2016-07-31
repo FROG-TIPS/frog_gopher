@@ -45,7 +45,8 @@ pub enum Selector {
 // Writing
 
 pub enum Selected<'a> {
-    Unknown,
+    // Newline-delimited lines to write
+    Error(Box<String>),
     Text(Box<String>),
     Menu(&'a Menu),
 }
@@ -58,6 +59,7 @@ pub trait Menu {
 pub enum MenuItem {
     // Other types are not supported
     Text {path: Path, desc: String},
+    Info {desc: String},
 }
 
 // Internals
@@ -208,8 +210,8 @@ impl Protocol {
             &Selected::Text(ref text) => {
                 try!(write!(stream, "{}\r\n", text))
             },
-            &Selected::Unknown => {
-                try!(write!(stream, "3FROG NOT FOUND.\r\n"))
+            &Selected::Error(ref why) => {
+                try!(write!(stream, "3{}\r\n", why))
             },
             &Selected::Menu(ref menu) => {
                 let addr = &self.ext_addr;
@@ -217,6 +219,11 @@ impl Protocol {
                     match item {
                         &MenuItem::Text {ref path, ref desc} => {
                             try!(write!(stream, "0{}\t{}\t{}\t{}\r\n", desc, path.to_str(), addr.host, addr.port))
+                        }
+                        &MenuItem::Info {ref desc} => {
+                            for line in desc.split("\n") {
+                                try!(write!(stream, "i{}\t\t\t\r\n", line))
+                            }
                         }
                     }
                 }
