@@ -3,6 +3,7 @@
 set -ex
 
 . $(dirname $0)/utils.sh
+DEB_PACKAGE_NAME=${PROJECT_NAME// /_}
 
 # Generate artifacts for release
 mk_artifacts() {
@@ -49,7 +50,7 @@ main() {
 
             mkdir -p $dtd/debian/DEBIAN
             cat >$dtd/debian/DEBIAN/control <<EOF
-Package: $PROJECT_NAME
+Package: $DEB_PACKAGE_NAME
 Version: ${TRAVIS_TAG#v}
 Architecture: $(architecture $TARGET)
 Maintainer: $DEB_MAINTAINER
@@ -57,7 +58,7 @@ Description: $DEB_DESCRIPTION
 EOF
 
             fakeroot dpkg-deb --build $dtd/debian
-            mv $dtd/debian.deb $PROJECT_NAME-$TRAVIS_TAG-$TARGET.deb
+            mv $dtd/debian.deb $DEB_PACKAGE_NAME-$TRAVIS_TAG-$TARGET.deb
             rm -r $dtd
         fi
     fi
