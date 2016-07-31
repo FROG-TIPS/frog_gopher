@@ -3,7 +3,7 @@
 set -ex
 
 . $(dirname $0)/utils.sh
-DEB_PACKAGE_NAME=${PROJECT_NAME// /_}
+DEB_PACKAGE_NAME=${PROJECT_NAME//_/-}
 
 # Generate artifacts for release
 mk_artifacts() {
