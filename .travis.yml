@@ -32,6 +32,7 @@ matrix:
           packages: &i686_unknown_linux_gnu
             # Cross compiler and cross compiled C libraries
             - gcc-multilib
+            - libssl-dev
     - os: linux
       rust: stable
       env: TARGET=i686-unknown-linux-musl
