@@ -108,6 +108,8 @@ mod tip_source {
     use protocol::{MenuItem,Path,Selected};
     use super::menu::{MenuItemIter,Source};
 
+    use itertools::Itertools;
+
 
     const ROOT_PATH: &'static str = "/TIP/";
 
@@ -178,7 +180,7 @@ mod tip_source {
         fn all_tips(&self) -> Result<Vec<Tip>, TipError> {
             let mut resp = try!(
                 self.client.post("https://frog.tips/api/2/tips/search")
-                           .body("{\"tweeted\": true}")
+                           .body("{\"tweeted\": true, \"approved\": true}")
                            .header(hyper::header::Authorization(self.api_key.clone()))
                            .header(hyper::header::Connection::close())
                            .send());
@@ -217,10 +219,13 @@ mod tip_source {
         }
 
         fn menu_items(&self) -> MenuItemIter {
-            let vec = match self.all_tips() {
+            let mut vec = match self.all_tips() {
                 Ok(tips) => {
                     tips.into_iter()
-                        .rev()
+                        .sorted_by(|t1, t2| {
+                            Ord::cmp(&t1.tweeted, &t2.tweeted)
+                        })
+                        .into_iter()
                         .map(|t| {
                             MenuItem::Text {
                                 path: Path::from(format!("{}{}", ROOT_PATH, t.number)),
@@ -234,6 +239,9 @@ mod tip_source {
                     vec![]
                 }
             };
+            vec.insert(0, MenuItem::Info {
+                desc: "BELOW ARE ALL TWEETED FROG TIPS, SORTED FROM LATEST TO THE EARLIEST TWEETED.".to_string()
+            });
             MenuItemIter::new(vec)
         }
     }
@@ -310,7 +318,7 @@ FROG KIWI (OCEANIA MODEL)
 
     const FIRMWARE_V2: &'static str = r#"
 # (C) FROG SYSTEMS 1993
-[DEF FROG [] [
+[DEF FROG []
     [LET
         [
             [DEF T_TIME [SGR BRW_T STP_T] [
@@ -393,7 +401,9 @@ FROG KIWI (OCEANIA MODEL)
     }
 
     impl MenuItemIter {
-        pub fn new(vec: Vec<MenuItem>) -> MenuItemIter {
+        pub fn new(mut vec: Vec<MenuItem>) -> MenuItemIter {
+            // Reverse this so we can pop
+            vec.reverse();
             MenuItemIter {
                 vec: vec,
             }
