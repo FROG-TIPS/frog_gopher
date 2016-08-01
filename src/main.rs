@@ -23,6 +23,8 @@ mod cli {
     use super::protocol::{ExternalAddr,ParseExternalAddrError};
 
 
+    const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
     #[derive(Clone, Debug)]
     pub struct Config {
         pub int_addr: SocketAddr,
@@ -34,6 +36,7 @@ mod cli {
         Usage(&'a str, Options),
         BadOpt(Box<error::Error>),
         MissingOpt(String),
+        Version,
     }
 
     impl<'a> From<AddrParseError> for Error<'a> {
@@ -58,6 +61,7 @@ mod cli {
         opts.optopt("x", "ext-addr", "EXTERNAL ADDRESS.", "EXT_ADDR");
         opts.optopt("k", "api-key", "YOUR FROG.TIPS API KEY.", "API_KEY");
         opts.optflag("h", "help", "SHOW THIS HELP THEN EXIT.");
+        opts.optflag("v", "version", "SHOW THE CURRENT VERSION THEN EXIT.");
 
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => { m }
@@ -66,6 +70,10 @@ mod cli {
 
         if matches.opt_present("h") {
             return Err(Error::Usage(program, opts));
+        }
+
+        if matches.opt_present("v") {
+            return Err(Error::Version);
         }
 
         let addr: SocketAddr = if !matches.free.is_empty() {
@@ -97,6 +105,7 @@ mod cli {
                 Error::Usage(program, opts) => print_usage(&program, opts),
                 Error::BadOpt(err) => println!("ERROR: INVALID VALUE: '{}'.", err),
                 Error::MissingOpt(name) => println!("ERROR: {} IS REQUIRED.", name),
+                Error::Version => println!("{}, version {}", program, VERSION),
             },
         }
     }
