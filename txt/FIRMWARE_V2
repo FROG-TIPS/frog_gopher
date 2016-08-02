@@ -1,0 +1,28 @@
+# (C) FROG SYSTEMS 1993
+[DEF FROG []
+  [LET
+      [
+          [DEF T_TIME [SGR BRW_T STP_T] [
+              [DO
+                  [POR SGR [ON ME]]
+                  [BRW BRW_T]
+                  [STP STP_T]
+                  [DRNK]
+                  [LD DSHWSHR]
+              ]
+          ]]
+          [DEF SGR 1]
+          [DEF BRW [MIN 2]]
+          [DEF STP [MIN 2]]
+          [DEF ENCLV 18003625283]
+      ]
+      [DO
+          [PRNT "WELCOME, FRIEND"]
+          [TP_TOE [THRU 2 LIPS]]
+          [PRNT "SLURP"]
+          # FIXME: LIPS WILL NOT STOP SMACKING AFTER THIS STEP!!!
+          [T_TIME SGR BRW STP]
+          [CALL ENCLV]
+      ]
+  ]
+]

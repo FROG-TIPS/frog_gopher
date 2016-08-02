@@ -327,95 +327,10 @@ mod menu {
     use protocol::{Selected,Menu,MenuItem,Path};
 
 
-    const README: &'static str = r#"
-           _   _          ___  ___  _   __
-          (o)-(o)        | __|| o \/ \ / _|
-       .-(   "   )-.     | _| |   ( o | |_n
-      /  /`'-=-'`\  \    |_|  |_|\\\_/ \__/
-    __\ _\ \___/ /_ /__   ___  _  ___  __
-      /|  /|\ /|\  |\    |_ _|| || o \/ _|
-                          | | | ||  _/\_ \
-                          |_| |_||_|  |__/
-
-        W E L C O M E ,  F R I E N D
-
-YOU ARE NOW CONNECTED TO THE LATEST IN FROG SYSTEMS
-TECHNOLOGY.
-
-FEEL FREE TO BROWSE AND DOWN-LOAD ALL TWEETED FROG
-TIPS IN ADDITIONAL TO VALUABLE RESOURCES FOR YOUR FROG.
-
-MAIN WEB CORNER:       HTTPS://FROG.TIPS
-TECHNICAL RESOURCES:   HTTPS://GITHUB.COM/FROG-TIPS
-CONTACT:               ROOT@FROG.TIPS
-"#;
-
-    const FROG_MODELS: &'static str = r#"FROG
-FROG NANO
-FROG JUMBO
-FROG CLASSIC (KNOWN AS FROG L'ORIGINAL IN QUÉBEC)
-FR-10 (INTENDED FOR HEAVY MANUFACTORY USE ONLY. NOT AVAILABLE FOR CONSUMER RESALE)
-FROG TOUCH
-REACH OUT AND TOUCH FROG
-PERSONAL FROG
-WIKI FROG (OCEANIA MODEL)
-FROG KIWI (OCEANIA MODEL)
-"#;
-
-    const FIRMWARE_V2: &'static str = r#"# (C) FROG SYSTEMS 1993
-[DEF FROG []
-    [LET
-        [
-            [DEF T_TIME [SGR BRW_T STP_T] [
-                [DO
-                    [POR SGR [ON ME]]
-                    [BRW BRW_T]
-                    [STP STP_T]
-                    [DRNK]
-                    [LD DSHWSHR]
-                ]
-            ]]
-            [DEF SGR 1]
-            [DEF BRW [MIN 2]]
-            [DEF STP [MIN 2]]
-            [DEF ENCLV 18003625283]
-        ]
-        [DO
-            [PRNT "WELCOME, FRIEND"]
-            [TP_TOE [THRU 2 LIPS]]
-            [PRNT "SLURP"]
-            # FIXME: LIPS WILL NOT STOP SMACKING AFTER THIS STEP!!!
-            [T_TIME SGR BRW STP]
-            [CALL ENCLV]
-        ]
-    ]
-]
-"#;
-
-    const JOB_OPENINGS: &'static str = r#"FROG SYSTEMS ENGINEERING IS LOOKING FOR QUALIFIED
-CANDIDATES IN THE FOLLOWING AREAS OF EXPERTISE:
-
-DIGITAL SIGNAL HOPPING    --- LOS ANGELES
-POND FLUID DYNAMICS       --- LAGOS
-AUDIO ENGINEER            --- MORDHAUS
-
-FROG SYSTEMS IS ALSO HIRING MATHEMATICANS AND
-SCIENCE-TISTS WITH SPECIALIZATION IN:
-
-N-AMPHIFOLD TOPOLOGY      --- HEIDELBERG
-J.U.M.P. GROUPING         --- LONDON
-GRIDFIROLOGICITY          --- EDINBURGH
-
-DO YOU EXCEL AT HARD WORK AND LACK THE NECESSARY
-BRAIN STRUCTURES TO FEAR DEATH OR ITS CONSEQUENCES?
-FROG SYSTEMS WANTS *YOU* FOR OUR HEAVY MANUFACTORY
-DIVISION:
-
-FROGMAN (SALT WATER)      --- OUTPOST #17 HUDSON BAY
-FROGMAN (HEAVY WATER)     --- UNDISCLOSED
-COOLING TECHNICIAN        --- CHIBA CITY
-SECURITY ASSOCIATE        --- TOYKO
-"#;
+    const README: &'static str = include_str!("../txt/README");
+    const FROG_MODELS: &'static str = include_str!("../txt/FROG_MODELS");
+    const FIRMWARE_V2: &'static str = include_str!("../txt/FIRMWARE_V2");
+    const JOB_OPENINGS: &'static str = include_str!("../txt/JOB_OPENINGS");
 
     pub struct RootMenu {
         sources: Vec<Box<Source>>,
