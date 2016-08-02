@@ -6,6 +6,8 @@ use std::string::FromUtf8Error;
 use std::error;
 use std::fmt;
 
+use hyper::Url;
+
 
 // Through careful research, this number has been chosen to anger as many people as possible
 const READ_BUFFER_SIZE: usize = 1;
@@ -60,6 +62,7 @@ pub enum MenuItem {
     // Other types are not supported
     Text {path: Path, desc: String},
     Info {desc: String},
+    JohnGoerzenUrl {url: Url, desc: String},
 }
 
 // Internals
@@ -220,6 +223,9 @@ impl Protocol {
                         &MenuItem::Text {ref path, ref desc} => {
                             try!(write!(stream, "0{}\t{}\t{}\t{}\r\n", desc, path.to_str(), addr.host, addr.port))
                         }
+                        &MenuItem::JohnGoerzenUrl {ref url, ref desc} => {
+                            try!(write!(stream, "h{}\tURL:{}\t{}\t{}\r\n", desc, url, addr.host, addr.port))
+                        },
                         &MenuItem::Info {ref desc} => {
                             for line in desc.split("\n") {
                                 try!(write!(stream, "i{}\t\t\t\r\n", line))

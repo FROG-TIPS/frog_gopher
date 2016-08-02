@@ -30,6 +30,40 @@ mod bogus_source {
     }
 }
 
+mod url_source {
+    use hyper::Url;
+
+    use protocol::{MenuItem,Path,Selected};
+    use super::menu::{Source,MenuItemIter};
+
+    pub struct UrlSource {
+        pub url: Url,
+        pub desc: String,
+    }
+
+    impl UrlSource {
+        pub fn new<S: Into<String>>(url: Url, desc: S) -> UrlSource {
+            UrlSource {
+                url: url,
+                desc: desc.into(),
+            }
+        }
+    }
+
+    impl Source for UrlSource {
+        fn find(&self, _: &Path) -> Option<Selected> {
+            None
+        }
+
+        fn menu_items(&self) -> MenuItemIter {
+            MenuItemIter::new(vec![MenuItem::JohnGoerzenUrl {
+                url: self.url.clone(),
+                desc: self.desc.clone(),
+            }])
+        }
+    }
+}
+
 mod info_source {
     use protocol::{MenuItem,Path,Selected};
     use super::menu::{Source,MenuItemIter};
@@ -180,6 +214,7 @@ mod tip_source {
                },
                other => {
                    warn!("NO TIP FOUND BECASE: {:?}", other);
+                   warn!("NO TIP FOUND BECAUSE: {:?}", other);
                    Ok(None)
                }
            }
@@ -282,10 +317,13 @@ mod tip_source {
 }
 
 mod menu {
+    use hyper::Url;
+
     use super::text_source::TextSource;
     use super::tip_source::TipSource;
     use super::bogus_source::BogusSource;
     use super::info_source::InfoSource;
+    use super::url_source::UrlSource;
     use protocol::{Selected,Menu,MenuItem,Path};
 
 
@@ -367,6 +405,16 @@ FROG KIWI (OCEANIA MODEL)
                     // Print the README as a banner as well
                     Box::new(
                         InfoSource::new(README),
+                    ),
+                    Box::new(
+                        // TODO: This should be caught as early as possible and so we panic
+                        UrlSource::new(Url::parse("https://frog.tips").unwrap(), "FROG TIPS MAIN WEBSPACE."),
+                    ),
+                    Box::new(
+                        UrlSource::new(Url::parse("http://hosting.frog.tips/rules.html").unwrap(), "FROG SYSTEMS (C) SONG CONTEST RULES."),
+                    ),
+                    Box::new(
+                        UrlSource::new(Url::parse("https://mitpress.mit.edu/sicp/").unwrap(), "LISP WIZARD REFERENCE."),
                     ),
                     Box::new(
                         TextSource::new(Path::from("/README"), "READ ALL ABOUT FROG, THE LATEST SENSATION.", README),
