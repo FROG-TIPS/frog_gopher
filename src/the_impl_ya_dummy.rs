@@ -350,8 +350,7 @@ TECHNICAL RESOURCES:   HTTPS://GITHUB.COM/FROG-TIPS
 CONTACT:               ROOT@FROG.TIPS
 "#;
 
-    const FROG_MODELS: &'static str = r#"
-FROG
+    const FROG_MODELS: &'static str = r#"FROG
 FROG NANO
 FROG JUMBO
 FROG CLASSIC (KNOWN AS FROG L'ORIGINAL IN QUÉBEC)
@@ -363,8 +362,7 @@ WIKI FROG (OCEANIA MODEL)
 FROG KIWI (OCEANIA MODEL)
 "#;
 
-    const FIRMWARE_V2: &'static str = r#"
-# (C) FROG SYSTEMS 1993
+    const FIRMWARE_V2: &'static str = r#"# (C) FROG SYSTEMS 1993
 [DEF FROG []
     [LET
         [
@@ -394,6 +392,31 @@ FROG KIWI (OCEANIA MODEL)
 ]
 "#;
 
+    const JOB_OPENINGS: &'static str = r#"FROG SYSTEMS ENGINEERING IS LOOKING FOR QUALIFIED
+CANDIDATES IN THE FOLLOWING AREAS OF EXPERTISE:
+
+DIGITAL SIGNAL HOPPING    --- LOS ANGELES
+POND FLUID DYNAMICS       --- LAGOS
+AUDIO ENGINEER            --- MORDHAUS
+
+FROG SYSTEMS IS ALSO HIRING MATHEMATICANS AND
+SCIENCE-TISTS WITH SPECIALIZATION IN:
+
+N-AMPHIFOLD TOPOLOGY      --- HEIDELBERG
+J.U.M.P. GROUPING         --- LONDON
+GRIDFIROLOGICITY          --- EDINBURGH
+
+DO YOU EXCEL AT HARD WORK AND LACK THE NECESSARY
+BRAIN STRUCTURES TO FEAR DEATH OR ITS CONSEQUENCES?
+FROG SYSTEMS WANTS *YOU* FOR OUR HEAVY MANUFACTORY
+DIVISION:
+
+FROGMAN (SALT WATER)      --- OUTPOST #17 HUDSON BAY
+FROGMAN (HEAVY WATER)     --- UNDISCLOSED
+COOLING TECHNICIAN        --- CHIBA CITY
+SECURITY ASSOCIATE        --- TOYKO
+"#;
+
     pub struct RootMenu {
         sources: Vec<Box<Source>>,
     }
@@ -418,6 +441,9 @@ FROG KIWI (OCEANIA MODEL)
                     ),
                     Box::new(
                         TextSource::new(Path::from("/README"), "READ ALL ABOUT FROG, THE LATEST SENSATION.", README),
+                    ),
+                    Box::new(
+                        TextSource::new(Path::from("/JOB_OPENINGS"), "CURRENT FROG SYSTEMS INC. JOB OPENINGS.", JOB_OPENINGS),
                     ),
                     Box::new(
                         BogusSource::new(Path::from("/USER_MANUAL"), "FROG USER MANUAL (EN) 17TH REV. INCLUDING APPENDICES."),
