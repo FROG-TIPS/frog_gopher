@@ -193,9 +193,9 @@ mod tests {
     const FROG_MODELS: &'static str = include_str!("../txt/FROG_MODELS");
 
     #[test]
-    fn shit_ton_of_connections() {
+    fn multiple_connections_dont_break() {
         // THIS WILL KILL YOUR SYSTEM IF YOU SET IT HIGHER
-        const MAX: usize = 9000;
+        const MAX: usize = 1000;
 
         // A reasonable amount of time to read and write to the connection
         const EXPECTED_WAIT_MS: u64 = 500;
