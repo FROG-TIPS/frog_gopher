@@ -80,14 +80,6 @@ enum Token {
 }
 
 #[derive(Clone,Debug)]
-pub struct Protocol {
-    ext_addr: ExternalAddr,
-    state: State,
-    remaining: Vec<u8>,
-    max_line_len: usize,
-}
-
-#[derive(Clone,Debug)]
 pub struct ExternalAddr {
     host: String,
     port: u16,
@@ -151,8 +143,16 @@ impl ::std::str::FromStr for ExternalAddr {
     }
 }
 
-impl Protocol {
-    pub fn new(ext_addr: ExternalAddr, max_line_len: usize) -> Protocol {
+#[derive(Clone,Debug)]
+pub struct Protocol<'a> {
+    ext_addr: &'a ExternalAddr,
+    state: State,
+    remaining: Vec<u8>,
+    max_line_len: usize,
+}
+
+impl<'a> Protocol<'a> {
+    pub fn new(ext_addr: &ExternalAddr, max_line_len: usize) -> Protocol {
         Protocol {
             ext_addr: ext_addr,
             state: State::Idle,

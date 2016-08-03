@@ -431,28 +431,33 @@ use self::menu::{RootMenu};
 use protocol::{Selector,Selected,Protocol,ProtocolError,ExternalAddr};
 
 
+const MAX_LINE_LEN: usize = 512;
+
 pub struct Gopher {
-    protocol: Protocol,
+    ext_addr: ExternalAddr,
     root_menu: RootMenu,
 }
 
 impl Gopher {
     pub fn new(ext_addr: ExternalAddr, frog_tips_api_key: String) -> Gopher {
-        let max_line_len = 512;
         Gopher {
-            protocol: Protocol::new(ext_addr, max_line_len),
+            ext_addr: ext_addr,
             root_menu: RootMenu::new(frog_tips_api_key),
         }
     }
 
-    pub fn respond(&mut self, mut stream: TcpStream) -> io::Result<()> {
+    pub fn respond(&self, mut stream: TcpStream) -> io::Result<()> {
         let resp = {
-            let selected = match try!(self.protocol.read(&mut stream)) {
+            // FIXME: This protocol contains state that should not be shared
+            // However, it seems silly to create a new struct every time
+            let mut protocol = Protocol::new(&self.ext_addr, MAX_LINE_LEN);
+
+            let selected = match try!(protocol.read(&mut stream)) {
                 Selector::Path(ref path) => self.root_menu.find(path),
                 Selector::Empty => Selected::Menu(&self.root_menu),
             };
 
-            try!(self.protocol.write(&mut stream, &selected))
+            try!(protocol.write(&mut stream, &selected))
         };
 
         Ok(resp)
@@ -464,3 +469,5 @@ impl From<ProtocolError> for io::Error {
         io::Error::new(io::ErrorKind::InvalidData, err)
     }
 }
+
+unsafe impl Sync for Gopher {}
