@@ -200,11 +200,11 @@ mod tests {
         // A reasonable amount of time to read and write to the connection
         const EXPECTED_WAIT_MS: u64 = 500;
 
-        let addr = "0.0.0.0:55555";
+        let addr = "127.0.0.1:7777";
 
         let _t = thread::spawn(move|| {
             let shared_gopher = {
-                let ext_addr = ExternalAddr::new("0.0.0.0", 55555);
+                let ext_addr = ExternalAddr::new("127.0.0.1", 7777);
                 let api_key = "testing".to_string();
                 Arc::new(Gopher::new(ext_addr, api_key))
             };
@@ -221,6 +221,9 @@ mod tests {
                 c.unwrap().join().ok().unwrap();
             }
         });
+
+        // Wait a bit for the server to start
+        thread::sleep(Duration::from_secs(1));
 
         connect(0, addr.to_string());
 
