@@ -195,7 +195,7 @@ mod tests {
     #[test]
     fn multiple_connections_dont_break() {
         // THIS WILL KILL YOUR SYSTEM IF YOU SET IT HIGHER
-        const MAX: usize = 1000;
+        const MAX: usize = 100;
 
         // A reasonable amount of time to read and write to the connection
         const EXPECTED_WAIT_MS: u64 = 500;
