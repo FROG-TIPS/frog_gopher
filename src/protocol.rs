@@ -9,30 +9,44 @@ use std::fmt;
 use hyper::Url;
 
 
-// Through careful research, this number has been chosen to anger as many people as possible
-const READ_BUFFER_SIZE: usize = 1;
-
-const CR: u8 = '\r' as u8;
-const LF: u8 = '\n' as u8;
-
 #[derive(Clone,Debug,Eq,PartialEq)]
 pub struct Path {
     val: String,
+    // Additional crap
+    extra: Option<String>,
 }
 
 impl Path {
     pub fn from<S: Into<String>>(val: S) -> Path {
-        Path {val: val.into()}
+        Path {
+            val: val.into(),
+            extra: None,
+        }
     }
 
-    pub fn to_str(&self) -> &str {
-        self.val.as_str()
+    pub fn new<S: Into<String>>(val: S, extra: Option<S>) -> Path {
+        Path {
+            val: val.into(),
+            extra: extra.map(|x| x.into()),
+        }
+    }
+
+    pub fn val(&self) -> &String {
+        &self.val
+    }
+
+    pub fn extra(&self) -> Option<&String> {
+        self.extra.as_ref()
     }
 }
 
 impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.val)
+        if let Some(ref extra) = self.extra {
+            write!(f, "{} (extra: {})", self.val, extra)
+        } else {
+            write!(f, "{}", self.val)
+        }
     }
 }
 
@@ -47,8 +61,8 @@ pub enum Selector {
 // Writing
 
 pub enum Selected<'a> {
-    // Newline-delimited lines to write
     Error(Box<String>),
+    // Newline-delimited lines to write
     Text(Box<String>),
     Menu(&'a Menu),
 }
@@ -70,12 +84,15 @@ pub enum MenuItem {
 #[derive(Clone,Debug)]
 enum State {
     Idle,
+    Path,
+    Extra,
     Newline,
 }
 
 #[derive(Debug)]
 enum Token {
-    Text(u8),
+    Extra(u8),
+    Path(u8),
     Newline,
 }
 
@@ -143,6 +160,13 @@ impl ::std::str::FromStr for ExternalAddr {
     }
 }
 
+// Through careful research, this number has been chosen to anger as many people as possible
+const READ_BUFFER_SIZE: usize = 1;
+
+const CR: u8 = '\r' as u8;
+const LF: u8 = '\n' as u8;
+const SPACE: u8 = ' ' as u8;
+
 #[derive(Clone,Debug)]
 pub struct Protocol<'a> {
     ext_addr: &'a ExternalAddr,
@@ -165,8 +189,10 @@ impl<'a> Protocol<'a> {
         loop {
             while let Some(byte) = self.remaining.pop() {
                 let (new_state, token) = match (&self.state, byte) {
-                    (&State::Idle, CR) => (State::Newline, None),
-                    (&State::Idle, b) => (State::Idle, Some(Token::Text(b))),
+                    (&State::Idle, CR) | (&State::Path, CR) | (&State::Extra, CR) => (State::Newline, None),
+                    (&State::Idle, SPACE) | (&State::Path, SPACE) => (State::Extra, None),
+                    (&State::Idle, b) | (&State::Path, b) => (State::Path, Some(Token::Path(b))),
+                    (&State::Extra, b) => (State::Extra, Some(Token::Extra(b))),
                     (&State::Newline, LF) => (State::Idle, Some(Token::Newline)),
                     (&State::Newline, _) => (State::Idle, None),
                 };
@@ -196,8 +222,11 @@ impl<'a> Protocol<'a> {
 
         while let Some(token) = try!(self.read_stream(stream)) {
             match token {
-                Token::Text(byte) => {
-                    try!(selector_builder.push(byte));
+                Token::Path(byte) => {
+                    try!(selector_builder.push_path(byte));
+                },
+                Token::Extra(byte) => {
+                    try!(selector_builder.push_extra(byte));
                 },
                 Token::Newline => {
                     return selector_builder.build();
@@ -221,7 +250,7 @@ impl<'a> Protocol<'a> {
                 for item in menu.items().iter() {
                     match item {
                         &MenuItem::Text {ref path, ref desc} => {
-                            try!(write!(stream, "0{}\t{}\t{}\t{}\r\n", desc, path.to_str(), addr.host, addr.port))
+                            try!(write!(stream, "0{}\t{}\t{}\t{}\r\n", desc, path.val(), addr.host, addr.port))
                         }
                         &MenuItem::JohnGoerzenUrl {ref url, ref desc} => {
                             try!(write!(stream, "h{}\tURL:{}\t{}\t{}\r\n", desc, url, addr.host, addr.port))
@@ -294,36 +323,65 @@ impl From<io::Error> for ProtocolError {
 
 struct SelectorBuilder {
     max_line_len: usize,
-    line_buffer: Vec<u8>,
+    path_buffer: Vec<u8>,
+    extra_buffer: Vec<u8>,
 }
 
 impl SelectorBuilder {
     fn new(max_line_len: usize) -> SelectorBuilder {
         SelectorBuilder {
             max_line_len: max_line_len,
-            line_buffer: Vec::with_capacity(max_line_len),
+            path_buffer: Vec::with_capacity(max_line_len),
+            extra_buffer: Vec::with_capacity(max_line_len),
         }
     }
 
-    fn push(&mut self, byte: u8) -> Result<(), ProtocolError> {
-        if self.max_line_len == self.line_buffer.len() {
-            Err(ProtocolError::LineTooBigError)
-        } else {
-            self.line_buffer.push(byte);
-            Ok(())
-        }
+    fn check_capacity(&self) -> Result<(), ProtocolError> {
+        if self.max_line_len == self.path_buffer.len() ||
+           self.max_line_len == self.extra_buffer.len() {
+               Err(ProtocolError::LineTooBigError)
+           } else {
+               Ok(())
+           }
+    }
+
+    fn reset(&mut self) {
+        // Tidy up the buffers
+        self.path_buffer.clear();
+        self.extra_buffer.clear();
+    }
+
+    fn push_path(&mut self, byte: u8) -> Result<(), ProtocolError> {
+        try!(self.check_capacity());
+        self.path_buffer.push(byte);
+        Ok(())
+    }
+
+    fn push_extra(&mut self, byte: u8) -> Result<(), ProtocolError> {
+        try!(self.check_capacity());
+        self.extra_buffer.push(byte);
+        Ok(())
     }
 
     fn build(&mut self) -> Result<Selector, ProtocolError> {
-        if self.line_buffer.len() == 0 {
+        if self.path_buffer.len() == 0 {
+            self.reset();
             return Ok(Selector::Empty);
         }
 
-        // Make a copy and tidy up the buffer
-        let bytes = self.line_buffer.clone();
-        self.line_buffer.clear();
 
-        let string = try!(String::from_utf8(bytes));
-        Ok(Selector::Path(Path::from(string)))
+        let path_bytes = self.path_buffer.clone();
+        let extra_bytes = self.extra_buffer.clone();
+
+        self.reset();
+
+        let path = try!(String::from_utf8(path_bytes));
+        let extra = if extra_bytes.len() == 0 {
+            None
+        } else {
+            Some(try!(String::from_utf8(extra_bytes)))
+        };
+
+        Ok(Selector::Path(Path::new(path, extra)))
     }
 }

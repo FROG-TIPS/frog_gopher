@@ -150,9 +150,8 @@ mod tip_source {
     type TipNum = u64;
 
     fn tip_num_from_path(path: &Path) -> Option<TipNum> {
-        let string = path.to_str();
-        if string.starts_with(ROOT_PATH) {
-            match string.split("/").last() {
+        if path.val().starts_with(ROOT_PATH) {
+            match path.val().split("/").last() {
                 Some(num) => num.parse::<TipNum>().ok(),
                 None => None,
             }
