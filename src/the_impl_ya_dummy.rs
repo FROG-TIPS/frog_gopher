@@ -317,77 +317,33 @@ mod tip_source {
 }
 
 mod menu {
-    use hyper::Url;
-
-    use super::text_source::TextSource;
-    use super::tip_source::TipSource;
-    use super::bogus_source::BogusSource;
-    use super::info_source::InfoSource;
-    use super::url_source::UrlSource;
     use protocol::{Selected,Menu,MenuItem,Path};
 
 
-    const README: &'static str = include_str!("../txt/README");
-    const FROG_MODELS: &'static str = include_str!("../txt/FROG_MODELS");
-    const FIRMWARE_V2: &'static str = include_str!("../txt/FIRMWARE_V2");
-    const JOB_OPENINGS: &'static str = include_str!("../txt/JOB_OPENINGS");
-
-    pub struct RootMenu {
-        sources: Vec<Box<Source>>,
+    pub struct AnyMenu {
+        sources: Vec<Box<Source>>
     }
 
-    impl RootMenu {
-        pub fn new(frog_tips_api_key: String) -> RootMenu {
-            RootMenu {
-                sources: vec![
-                    // Print the README as a banner as well
-                    Box::new(
-                        InfoSource::new(README),
-                    ),
-                    Box::new(
-                        // TODO: This should be caught as early as possible and so we panic
-                        UrlSource::new(Url::parse("https://frog.tips").unwrap(), "FROG TIPS MAIN WEBSPACE."),
-                    ),
-                    Box::new(
-                        UrlSource::new(Url::parse("http://hosting.frog.tips/rules.html").unwrap(), "FROG SYSTEMS (C) SONG CONTEST RULES."),
-                    ),
-                    Box::new(
-                        UrlSource::new(Url::parse("https://mitpress.mit.edu/sicp/").unwrap(), "LISP WIZARD REFERENCE."),
-                    ),
-                    Box::new(
-                        TextSource::new(Path::from("/README"), "READ ALL ABOUT FROG, THE LATEST SENSATION.", README),
-                    ),
-                    Box::new(
-                        TextSource::new(Path::from("/JOB_OPENINGS"), "CURRENT FROG SYSTEMS INC. JOB OPENINGS.", JOB_OPENINGS),
-                    ),
-                    Box::new(
-                        BogusSource::new(Path::from("/USER_MANUAL"), "FROG USER MANUAL (EN) 17TH REV. INCLUDING APPENDICES."),
-                    ),
-                    Box::new(
-                        TextSource::new(Path::from("/FROG_MODELS"), "NON-CANON FROG MODEL LISTING.", FROG_MODELS),
-                    ),
-                    Box::new(
-                        TextSource::new(Path::from("/FIRMWARE_V2"), "FROG V2 FIRMWARE FOR ALL NON-OCEANIA MODELS", FIRMWARE_V2),
-                    ),
-                    Box::new(
-                        TipSource::new(frog_tips_api_key),
-                    )
-                ],
+    impl AnyMenu {
+        pub fn new() -> AnyMenu {
+            AnyMenu {
+                sources: vec![],
             }
         }
 
-        pub fn find(&self, path: &Path) -> Selected {
+        pub fn push<S: 'static + Source>(&mut self, source: S) {
+            self.sources.push(Box::new(source));
+        }
+
+        pub fn find(&self, path: &Path) -> Option<Selected> {
             info!("PATH: '{}'", path);
             self.sources.iter()
                         .filter_map(|s| s.find(path))
                         .nth(0)
-                        .unwrap_or(Selected::Error(
-                            Box::new(
-                                format!("{} NOT FOUND.", path))))
         }
     }
 
-    impl Menu for RootMenu {
+    impl Menu for AnyMenu {
         fn items(&self) -> Vec<MenuItem> {
             self.sources.iter()
                         .flat_map(|s| s.menu_items())
@@ -427,22 +383,57 @@ use std::net::TcpStream;
 use std::io::Write;
 use std::io;
 
-use self::menu::{RootMenu};
-use protocol::{Selector,Selected,Protocol,ProtocolError,ExternalAddr};
+use hyper::Url;
+
+use self::menu::AnyMenu;
+use self::tip_source::TipSource;
+use self::text_source::TextSource;
+use self::bogus_source::BogusSource;
+use self::info_source::InfoSource;
+use self::url_source::UrlSource;
+use protocol::{Selector,Selected,Path,Protocol,ProtocolError,ExternalAddr};
 
 
 const MAX_LINE_LEN: usize = 512;
 
+const README: &'static str = include_str!("../txt/README");
+const FROG_MODELS: &'static str = include_str!("../txt/FROG_MODELS");
+const FIRMWARE_V2: &'static str = include_str!("../txt/FIRMWARE_V2");
+const JOB_OPENINGS: &'static str = include_str!("../txt/JOB_OPENINGS");
+
 pub struct Gopher {
     ext_addr: ExternalAddr,
-    root_menu: RootMenu,
+    menu: AnyMenu,
 }
 
 impl Gopher {
     pub fn new(ext_addr: ExternalAddr, frog_tips_api_key: String) -> Gopher {
+        let mut menu = AnyMenu::new();
+
+        menu.push(
+            InfoSource::new(README));
+        menu.push(
+            UrlSource::new(Url::parse("https://frog.tips").unwrap(), "FROG TIPS MAIN WEBSPACE."));
+        menu.push(
+            UrlSource::new(Url::parse("http://hosting.frog.tips/rules.html").unwrap(), "FROG SYSTEMS (C) SONG CONTEST RULES."));
+        menu.push(
+            UrlSource::new(Url::parse("https://mitpress.mit.edu/sicp/").unwrap(), "LISP WIZARD REFERENCE."));
+        menu.push(
+            TextSource::new(Path::from("/README"), "READ ALL ABOUT FROG, THE LATEST SENSATION.", README));
+        menu.push(
+            TextSource::new(Path::from("/JOB_OPENINGS"), "CURRENT FROG SYSTEMS INC. JOB OPENINGS.", JOB_OPENINGS));
+        menu.push(
+            BogusSource::new(Path::from("/USER_MANUAL"), "FROG USER MANUAL (EN) 17TH REV. INCLUDING APPENDICES."));
+        menu.push(
+            TextSource::new(Path::from("/FROG_MODELS"), "NON-CANON FROG MODEL LISTING.", FROG_MODELS));
+        menu.push(
+            TextSource::new(Path::from("/FIRMWARE_V2"), "FROG V2 FIRMWARE FOR ALL NON-OCEANIA MODELS", FIRMWARE_V2));
+        menu.push(
+            TipSource::new(frog_tips_api_key));
+
         Gopher {
             ext_addr: ext_addr,
-            root_menu: RootMenu::new(frog_tips_api_key),
+            menu: menu,
         }
     }
 
@@ -453,8 +444,11 @@ impl Gopher {
             let mut protocol = Protocol::new(&self.ext_addr, MAX_LINE_LEN);
 
             let selected = match try!(protocol.read(&mut stream)) {
-                Selector::Path(ref path) => self.root_menu.find(path),
-                Selector::Empty => Selected::Menu(&self.root_menu),
+                Selector::Path(ref path) => self.menu.find(path)
+                                                     .unwrap_or(
+                                                         Selected::Error(
+                                                             Box::new(format!("{} NOT FOUND", path)))),
+                Selector::Empty => Selected::Menu(&self.menu),
             };
 
             try!(protocol.write(&mut stream, &selected))
