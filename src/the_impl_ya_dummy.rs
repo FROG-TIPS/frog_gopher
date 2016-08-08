@@ -212,7 +212,6 @@ mod tip_source {
                    Ok(Some(tip))
                },
                other => {
-                   warn!("NO TIP FOUND BECASE: {:?}", other);
                    warn!("NO TIP FOUND BECAUSE: {:?}", other);
                    Ok(None)
                }
@@ -399,6 +398,8 @@ const README: &'static str = include_str!("../txt/README");
 const FROG_MODELS: &'static str = include_str!("../txt/FROG_MODELS");
 const FIRMWARE_V2: &'static str = include_str!("../txt/FIRMWARE_V2");
 const JOB_OPENINGS: &'static str = include_str!("../txt/JOB_OPENINGS");
+const JOB_OPENINGS_MOD_DATE: &'static str = "8 AUGUST 2016";
+const EVACUATION_PROCEDURE: &'static str = include_str!("../txt/EVACUATION_PROCEDURE");
 
 pub struct Gopher {
     ext_addr: ExternalAddr,
@@ -414,6 +415,12 @@ impl Gopher {
         menu.push(
             UrlSource::new(Url::parse("https://frog.tips").unwrap(), "FROG TIPS MAIN WEBSPACE."));
         menu.push(
+            UrlSource::new(Url::parse("https://github.com/FROG-TIPS").unwrap(), "FROG SYSTEMS TECHNICAL RESOURCES."));
+        menu.push(
+            UrlSource::new(Url::parse("https://twitter.com/FrogTips").unwrap(), "FROG SYSTEMS REAL-TIME WIRE SERVICE."));
+        menu.push(
+            InfoSource::new("IF YOU ARE EXPERIENCING AN EMERGENCY AT OUR MCMURDO BASE OF OPERATIONS,\nPLEASE SEND A WIRE TO THE ABOVE SERVICE IMMEDIATELY."));
+        menu.push(
             UrlSource::new(Url::parse("http://hosting.frog.tips/rules.html").unwrap(), "FROG SYSTEMS (C) SONG CONTEST RULES."));
         menu.push(
             UrlSource::new(Url::parse("https://mitpress.mit.edu/sicp/").unwrap(), "LISP WIZARD REFERENCE."));
@@ -422,9 +429,13 @@ impl Gopher {
         menu.push(
             TextSource::new(Path::from("/JOB_OPENINGS"), "CURRENT FROG SYSTEMS INC. JOB OPENINGS.", JOB_OPENINGS));
         menu.push(
+            InfoSource::new(format!("(UPDATED {})", JOB_OPENINGS_MOD_DATE)));
+        menu.push(
             BogusSource::new(Path::from("/USER_MANUAL"), "FROG USER MANUAL (EN) 17TH REV. INCLUDING APPENDICES."));
         menu.push(
             TextSource::new(Path::from("/FROG_MODELS"), "NON-CANON FROG MODEL LISTING.", FROG_MODELS));
+        menu.push(
+            TextSource::new(Path::from("/EVACUATION_PROCEDURE"), "OFFICIAL EVACUATION PROCEDURE.", EVACUATION_PROCEDURE));
         menu.push(
             TextSource::new(Path::from("/FIRMWARE_V2"), "FROG V2 FIRMWARE FOR ALL NON-OCEANIA MODELS", FIRMWARE_V2));
         menu.push(
