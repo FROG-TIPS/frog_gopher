@@ -64,7 +64,8 @@ pub enum Selected<'a> {
     Error(Box<String>),
     // Newline-delimited lines to write
     Text(Box<String>),
-    Menu(&'a Menu),
+    TempMenu(Box<Menu>),
+    ForeverMenu(&'a Menu),
 }
 
 pub trait Menu {
@@ -77,6 +78,7 @@ pub enum MenuItem {
     Text {path: Path, desc: String},
     Info {desc: String},
     JohnGoerzenUrl {url: Url, desc: String},
+    Search {path: Path, desc: String},
 }
 
 // Internals
@@ -165,7 +167,6 @@ const READ_BUFFER_SIZE: usize = 1;
 
 const CR: u8 = '\r' as u8;
 const LF: u8 = '\n' as u8;
-const SPACE: u8 = ' ' as u8;
 
 #[derive(Clone,Debug)]
 pub struct Protocol<'a> {
@@ -190,7 +191,7 @@ impl<'a> Protocol<'a> {
             while let Some(byte) = self.remaining.pop() {
                 let (new_state, token) = match (&self.state, byte) {
                     (&State::Idle, CR) | (&State::Path, CR) | (&State::Extra, CR) => (State::Newline, None),
-                    (&State::Idle, SPACE) | (&State::Path, SPACE) => (State::Extra, None),
+                    (&State::Idle, w) | (&State::Path, w) if w == 9 || w == 32 => (State::Extra, None),
                     (&State::Idle, b) | (&State::Path, b) => (State::Path, Some(Token::Path(b))),
                     (&State::Extra, b) => (State::Extra, Some(Token::Extra(b))),
                     (&State::Newline, LF) => (State::Idle, Some(Token::Newline)),
@@ -237,6 +238,30 @@ impl<'a> Protocol<'a> {
         Err(ProtocolError::UnfinishedBusiness)
     }
 
+    fn write_menu(&mut self, stream: &mut TcpStream, menu: &Menu) -> Result<(), ProtocolError> {
+        let addr = &self.ext_addr;
+        for item in menu.items().iter() {
+            match item {
+                &MenuItem::Text {ref path, ref desc} => {
+                    try!(write!(stream, "0{}\t{}\t{}\t{}\r\n", desc, path.val(), addr.host, addr.port))
+                }
+                &MenuItem::JohnGoerzenUrl {ref url, ref desc} => {
+                    try!(write!(stream, "h{}\tURL:{}\t{}\t{}\r\n", desc, url, addr.host, addr.port))
+                },
+                &MenuItem::Info {ref desc} => {
+                    for line in desc.split("\n") {
+                        try!(write!(stream, "i{}\t\t\t\r\n", line))
+                    }
+                },
+                &MenuItem::Search {ref path, ref desc} => {
+                    try!(write!(stream, "7{}\t{}\t{}\t{}\r\n", desc, path, addr.host, addr.port))
+                },
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn write(&mut self, stream: &mut TcpStream, selected: &Selected) -> Result<(), ProtocolError> {
         match selected {
             &Selected::Text(ref text) => {
@@ -245,24 +270,13 @@ impl<'a> Protocol<'a> {
             &Selected::Error(ref why) => {
                 try!(write!(stream, "3{}\r\n", why))
             },
-            &Selected::Menu(ref menu) => {
-                let addr = &self.ext_addr;
-                for item in menu.items().iter() {
-                    match item {
-                        &MenuItem::Text {ref path, ref desc} => {
-                            try!(write!(stream, "0{}\t{}\t{}\t{}\r\n", desc, path.val(), addr.host, addr.port))
-                        }
-                        &MenuItem::JohnGoerzenUrl {ref url, ref desc} => {
-                            try!(write!(stream, "h{}\tURL:{}\t{}\t{}\r\n", desc, url, addr.host, addr.port))
-                        },
-                        &MenuItem::Info {ref desc} => {
-                            for line in desc.split("\n") {
-                                try!(write!(stream, "i{}\t\t\t\r\n", line))
-                            }
-                        }
-                    }
-                }
-            }
+            &Selected::ForeverMenu(ref menu) => {
+                try!(self.write_menu(stream, *menu))
+            },
+            &Selected::TempMenu(ref menu) => {
+                // TODO: Collapse this into the above pattern when box matching is in stable
+                try!(self.write_menu(stream, &**menu))
+            },
         };
 
         Ok(try!(write!(stream, ".\r\n")))

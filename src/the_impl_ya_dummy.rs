@@ -139,24 +139,55 @@ mod tip_source {
     use std::io::Read;
     use std::io;
 
-    use protocol::{MenuItem,Path,Selected};
+    use protocol::{Menu,MenuItem,Path,Selected};
     use super::menu::{MenuItemIter,Source};
 
     use itertools::Itertools;
 
 
     const ROOT_PATH: &'static str = "/TIP/";
+    const SEARCH_PATH: &'static str = "/TIP/SEARCH";
+
+    fn tips_into_menu_items(tips: &Vec<Tip>) -> Vec<MenuItem> {
+        tips.into_iter()
+            .sorted_by(|t1, t2| {
+                // Latest first
+                Ord::cmp(&t2.tweeted, &t1.tweeted)
+            })
+            .into_iter()
+            .map(|t| {
+                MenuItem::Text {
+                    path: Path::from(format!("{}{}", ROOT_PATH, t.number)),
+                    desc: format!("TIP #{}", t.number),
+                }
+            })
+            .collect()
+    }
 
     type TipNum = u64;
 
-    fn tip_num_from_path(path: &Path) -> Option<TipNum> {
-        if path.val().starts_with(ROOT_PATH) {
-            match path.val().split("/").last() {
-                Some(num) => num.parse::<TipNum>().ok(),
-                None => None,
+    enum TipPath {
+        Tip(TipNum),
+        Search(Option<String>),
+        Unknown,
+    }
+
+    impl From<Path> for TipPath {
+        fn from(path: Path) -> TipPath {
+            let val = path.val();
+            if val.starts_with(SEARCH_PATH) {
+                TipPath::Search(path.extra().map(|x| x.clone()))
+            } else if val.starts_with(ROOT_PATH) {
+                match val.split("/").last() {
+                    Some(num) => match num.parse::<TipNum>() {
+                        Ok(num) => TipPath::Tip(num),
+                        _ => TipPath::Unknown,
+                    },
+                    None => TipPath::Unknown,
+                }
+            } else {
+                TipPath::Unknown
             }
-        } else {
-            None
         }
     }
 
@@ -170,10 +201,31 @@ mod tip_source {
         tip: String,
     }
 
+    // Search stuff
+
     #[derive(RustcDecodable)]
     struct SearchResults {
         results: Vec<Tip>,
     }
+
+    #[derive(RustcEncodable)]
+    struct SearchQuery {
+        tweeted: bool,
+        approved: bool,
+        tip: Option<String>,
+    }
+
+    struct SearchResultsMenu {
+        tips: Vec<Tip>,
+    }
+
+    impl Menu for SearchResultsMenu {
+        fn items(&self) -> Vec<MenuItem> {
+            tips_into_menu_items(&self.tips)
+        }
+    }
+
+    // Access tips
 
     pub struct TipSource {
         api_key: String,
@@ -219,9 +271,20 @@ mod tip_source {
         }
 
         fn all_tips(&self) -> Result<Vec<Tip>, TipError> {
+            self.search_tips(None)
+        }
+
+        fn search_tips(&self, text: Option<String>) -> Result<Vec<Tip>, TipError> {
+            let query = SearchQuery {
+                approved: true,
+                tweeted: true,
+                tip: text,
+            };
+            let body = try!(json::encode(&query));
+
             let mut resp = try!(
                 self.client.post("https://frog.tips/api/2/tips/search")
-                           .body("{\"tweeted\": true, \"approved\": true}")
+                           .body(&body)
                            .header(hyper::header::Authorization(self.api_key.clone()))
                            .header(hyper::header::Connection::close())
                            .send());
@@ -243,46 +306,52 @@ mod tip_source {
 
     impl Source for TipSource {
         fn find(&self, path: &Path) -> Option<Selected> {
-            tip_num_from_path(path).and_then(|num| {
-                match self.one_tip(num) {
+            let tip_path = TipPath::from((*path).clone());
+            match tip_path {
+                TipPath::Tip(num) => match self.one_tip(num) {
                     Ok(Some(tip)) => {
                         Some(Selected::Text(Box::new(tip.tip)))
                     },
                     Ok(None) => {
+                        warn!("TIP {} NOT FOUND.", num);
                         None
-                    }
+                    },
                     Err(why) => {
-                        warn!("COULD NOT PROVIDE TIP {}: {:?}", path, why);
+                        warn!("ERROR FETCHING TIP: {:?}", why);
                         None
-                    }
-                }
-            })
+                    },
+                },
+                TipPath::Search(text) => match self.search_tips(text) {
+                    Ok(tips) => {
+                        Some(Selected::TempMenu(Box::new(SearchResultsMenu { tips: tips })))
+                    },
+                    Err(why) => {
+                        warn!("ERROR SEARCHING FOR TIP: {:?}", why);
+                        None
+                    },
+                },
+                _ => {
+                    None
+                },
+            }
         }
 
         fn menu_items(&self) -> MenuItemIter {
             let mut vec = match self.all_tips() {
-                Ok(tips) => {
-                    tips.into_iter()
-                        .sorted_by(|t1, t2| {
-                            // Latest first
-                            Ord::cmp(&t2.tweeted, &t1.tweeted)
-                        })
-                        .into_iter()
-                        .map(|t| {
-                            MenuItem::Text {
-                                path: Path::from(format!("{}{}", ROOT_PATH, t.number)),
-                                desc: format!("TIP #{}", t.number),
-                            }
-                        })
-                        .collect()
+                Ok(ref tips) => {
+                    tips_into_menu_items(tips)
                 },
                 Err(why) => {
                     warn!("COULD NOT PROVIDE TIPS: {:?}", why);
                     vec![]
                 }
             };
+            vec.insert(0, MenuItem::Search {
+                path: Path::from(SEARCH_PATH),
+                desc: "SEARCH FOR A FROG TIP.".to_string(),
+            });
             vec.insert(0, MenuItem::Info {
-                desc: "BELOW ARE ALL TWEETED FROG TIPS, SORTED FROM LATEST TO THE EARLIEST TWEETED.".to_string()
+                desc: "\nINTERACT WITH ALL TWEETED FROG TIPS, SORTED FROM LATEST TO THE EARLIEST TWEETED.".to_string()
             });
             MenuItemIter::new(vec)
         }
@@ -292,6 +361,7 @@ mod tip_source {
     enum TipError {
         Network(hyper::error::Error),
         Decoding(json::DecoderError),
+        Search(json::EncoderError),
         Io(io::Error),
     }
 
@@ -310,6 +380,12 @@ mod tip_source {
     impl From<io::Error> for TipError {
         fn from(err: io::Error) -> TipError {
             TipError::Io(err)
+        }
+    }
+
+    impl From<json::EncoderError> for TipError {
+        fn from(err: json::EncoderError) -> TipError {
+            TipError::Search(err)
         }
     }
 }
@@ -417,19 +493,17 @@ impl Gopher {
         menu.push(
             UrlSource::new(Url::parse("https://github.com/FROG-TIPS").unwrap(), "FROG SYSTEMS TECHNICAL RESOURCES."));
         menu.push(
-            UrlSource::new(Url::parse("https://twitter.com/FrogTips").unwrap(), "FROG SYSTEMS REAL-TIME WIRE SERVICE."));
-        menu.push(
-            InfoSource::new("IF YOU ARE EXPERIENCING AN EMERGENCY AT OUR MCMURDO BASE OF OPERATIONS,\nPLEASE SEND A WIRE TO THE ABOVE SERVICE IMMEDIATELY."));
-        menu.push(
             UrlSource::new(Url::parse("http://hosting.frog.tips/rules.html").unwrap(), "FROG SYSTEMS (C) SONG CONTEST RULES."));
         menu.push(
-            UrlSource::new(Url::parse("https://mitpress.mit.edu/sicp/").unwrap(), "LISP WIZARD REFERENCE."));
+            UrlSource::new(Url::parse("https://twitter.com/FrogTips").unwrap(), "FROG SYSTEMS REAL-TIME WIRE SERVICE."));
         menu.push(
-            TextSource::new(Path::from("/README"), "READ ALL ABOUT FROG, THE LATEST SENSATION.", README));
+            InfoSource::new("IF YOU ARE EXPERIENCING AN EMERGENCY AT OUR MCMURDO BASE OF OPERATIONS,\nPLEASE SEND A WIRE TO THE ABOVE SERVICE IMMEDIATELY.\n"));
         menu.push(
             TextSource::new(Path::from("/JOB_OPENINGS"), "CURRENT FROG SYSTEMS INC. JOB OPENINGS.", JOB_OPENINGS));
         menu.push(
-            InfoSource::new(format!("(UPDATED {})", JOB_OPENINGS_MOD_DATE)));
+            InfoSource::new(format!("(UPDATED {})\n", JOB_OPENINGS_MOD_DATE)));
+        menu.push(
+            TextSource::new(Path::from("/README"), "READ ALL ABOUT FROG, THE LATEST SENSATION.", README));
         menu.push(
             BogusSource::new(Path::from("/USER_MANUAL"), "FROG USER MANUAL (EN) 17TH REV. INCLUDING APPENDICES."));
         menu.push(
@@ -458,7 +532,7 @@ impl Gopher {
                                                      .unwrap_or(
                                                          Selected::Error(
                                                              Box::new(format!("{} NOT FOUND", path)))),
-                Selector::Empty => Selected::Menu(&self.menu),
+                Selector::Empty => Selected::ForeverMenu(&self.menu),
             };
 
             try!(protocol.write(&mut stream, &selected))
