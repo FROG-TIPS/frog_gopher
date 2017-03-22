@@ -6,7 +6,7 @@ authors = ["Perl I. W. <support@frog.tips>"]
 [dependencies]
 log = "0.3.6"
 itertools = "0.4.13"
-hyper = "0.9.18"
+hyper = "0.9.10"
 rustc-serialize = "0.3.19"
 getopts = "0.2"
 time = "0.1"
