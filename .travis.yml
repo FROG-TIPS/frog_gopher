@@ -20,7 +20,7 @@ addons:
   apt:
     packages:
       - libssl-dev
-      - openssl-dev
+      - openssl-devel
 
 matrix:
   include:
