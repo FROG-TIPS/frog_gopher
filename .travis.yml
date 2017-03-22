@@ -1,6 +1,7 @@
+dist: trusty
 language: rust
-cache: cargo
-sudo: true
+services: docker
+sudo: required
 
 env:
   global:
@@ -8,11 +9,12 @@ env:
     - MAKE_DEB=yes
     - DEB_MAINTAINER="FROG SYSTEMS INC <support@frog.tips>"
     - DEB_DESCRIPTION="EXPLORE THE WONDERFUL WORLD OF FROG TIPS WITH THIS GOPHER SERVER."
+    - CRATE_NAME=frog_gopher
+    - TARGET=x86_64-unknown-linux-gnu
 
 rust:
+  - 1.8.0
   - stable
-  - beta
-  - nightly
 
 addons:
   apt:
@@ -21,33 +23,40 @@ addons:
 
 matrix:
   include:
-    - os: osx
-      rust: stable
-      env: TARGET=i686-apple-darwin
+    # - os: osx
+    #   rust: stable
+    #   env: TARGET=i686-apple-darwin
     - os: linux
       rust: stable
       env: TARGET=i686-unknown-linux-musl
-    - os: osx
-      rust: stable
-      env: TARGET=x86_64-apple-darwin
+    # - os: osx
+    #   rust: stable
+    #   env: TARGET=x86_64-apple-darwin
     - os: linux
       rust: stable
       env: TARGET=x86_64-unknown-linux-gnu
     - os: linux
       rust: stable
       env: TARGET=x86_64-unknown-linux-musl
-  allow_failures:
-    - os: linux
-      rust: stable
-      env: TARGET=i686-unknown-linux-musl
-    - rust: nightly
-    - rust: beta
-    - os: linux
-      rust: stable
-      env: TARGET=x86_64-unknown-linux-musl
+  # allow_failures:
+  #   - os: linux
+  #     rust: stable
+  #     env: TARGET=i686-unknown-linux-musl
+  #   - rust: nightly
+  #   - rust: beta
+  #   - os: linux
+  #     rust: stable
+  #     env: TARGET=x86_64-unknown-linux-musl
 
-before_install:
-  - export PATH="$PATH:$HOME/.cargo/bin"
+install:
+  - sh ci/install.sh
+  - source ~/.cargo/env || true
+
+script:
+  - bash ci/script.sh
+
+before_deploy:
+  - sh ci/before_deploy.sh
 
 branches:
   only:
@@ -57,21 +66,12 @@ branches:
     # is pushed. This regex matches semantic versions like v1.2.3-rc4+2016.02.22
     - /^v\d+\.\d+\.\d+.*$/
 
-install:
-  - bash ci/install.sh
-
-script:
-  - bash ci/script.sh
-
-before_deploy:
-  - bash ci/before_deploy.sh
-
 deploy:
   provider: releases
   api_key:
     secure: lDCG7T0CTzKhFk5QNwaI6d+DyJcB44ZLrMpqsHKJ84ez4G/NG7o06obS9qXxU/SXHrWJsYnoDZEd6rg72lrHw0XJcuftQB3Vc8Fv4d+tMXoNnsxkiD10c4sfoXh9iNW6D3phqA8LBARa2hBFB6L4gdr5yOgKcba13EAEvDMT1YEIyw4pUP6nJZLWx+fS2Cx9uNKTHMU2461NM+opU9ejCtLEmSE1FoolqSx/k0eFKGcpz7VvINKwPyQhxrLjWw6YFOfOsu8MC8XNTQqjCJ3rnee3z7M3/iN5cKIcBQFkcsPJRQ6Gh3vyWzP3q8SqyC1oWUALXRhDjDsh3iy+JrxhcX+FwQPBoBqfChqriWFBN46vZwN8Pv44U8whFBqXj6RGKgMv9fFjsrKFDla5Rx1QbqnVIVZihfMuSCVFl8PUdQeoXJSzjYJ7cT1EXPsfAyNoU4U2gr6Wtw6drwNHqYRNfVsvnwA/UTjFvqvjTYqRGchyNhtuPGqpD0fn2jgEDddGMssMh1GxlCRkhfYPMpwDibdUERt9nFWTEcXgrt/kinphRUHXFIL2PFLwzWQN9Ks5VKCtE4hXncGa023Y53ue6Tgz5pLQ+BoG7LGSsH9YO8jpuJeCNtTfQHPWgbfl1Anlrz6MLb5EkQniSZD8vDHMiEDUdbG3hrQeH/DDm3pKGrU=
   file_glob: true
-  file: ${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.*
+  file: ${CRATE_NAME}-${TRAVIS_TAG}-${TARGET}.*
   # don't delete the artifacts from previous phases
   skip_cleanup: true
   # deploy when a new tag is pushed
