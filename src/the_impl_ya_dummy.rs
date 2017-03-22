@@ -1,3 +1,37 @@
+mod genuine_frog_source {
+    use protocol::{MenuItem,Path,Selected};
+    use super::menu::{Source,MenuItemIter};
+
+    const SEARCH_PATH: &'static str = "/GENUINEFROG";
+
+    pub struct GenuineFrogSource {
+    }
+
+    impl GenuineFrogSource {
+        pub fn new() -> GenuineFrogSource {
+            GenuineFrogSource {}
+        }
+    }
+
+    impl Source for GenuineFrogSource {
+        fn find(&self, path: &Path) -> Option<Selected> {
+            let val = path.val();
+            if val.starts_with(SEARCH_PATH) {
+                Some(Selected::Text(Box::new("FROG SYSTEMS REGRETS TO INFORM YOU THAT YOU HAVE A COUNTERFEIT FROG. PLEASE CALL +1 (415) FROG-SYS     TO TALK TO OUR SUPPORT STAFF.".to_string())))
+            } else {
+                None
+            }
+        }
+
+        fn menu_items(&self) -> MenuItemIter {
+            MenuItemIter::new(vec![MenuItem::Search {
+                path: Path::from(SEARCH_PATH),
+                desc: "CHECK IF YOU HAVE A GENUINE FROG.".to_string(),
+            }])
+        }
+    }
+}
+
 mod bogus_source {
     use protocol::{MenuItem,Path,Selected};
     use super::menu::{Source,MenuItemIter};
@@ -465,6 +499,7 @@ use self::text_source::TextSource;
 use self::bogus_source::BogusSource;
 use self::info_source::InfoSource;
 use self::url_source::UrlSource;
+use self::genuine_frog_source::GenuineFrogSource;
 use protocol::{Selector,Selected,Path,Protocol,ProtocolError,ExternalAddr};
 
 
@@ -494,6 +529,8 @@ impl Gopher {
             UrlSource::new(Url::parse("https://github.com/FROG-TIPS").unwrap(), "FROG SYSTEMS TECHNICAL RESOURCES."));
         menu.push(
             UrlSource::new(Url::parse("http://hosting.frog.tips/rules.html").unwrap(), "FROG SYSTEMS (C) SONG CONTEST RULES."));
+        menu.push(
+            GenuineFrogSource::new());
         menu.push(
             UrlSource::new(Url::parse("https://twitter.com/FrogTips").unwrap(), "FROG SYSTEMS REAL-TIME WIRE SERVICE."));
         menu.push(
