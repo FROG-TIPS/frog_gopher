@@ -10,7 +10,7 @@
              _/;--._, &gt;        |   --.__/ `""""""`          KNOW HOW HARD
            (((-'  __//`'-......-;\      )                      IT IS TO FIND
                 (((-'       __//  '--. /                       GOPHER ASCII ART
-        jgs               (((-'    __//                        IN 2016
+        jgs               (((-'    __//                        IN 2017
                                  (((-'                         
 ```
 
@@ -23,12 +23,11 @@ VIEW IT FOR YOURSELF AT [GOPHER://GOPHER.FROG.TIPS](http://gopher.floodgap.com/g
 
 ## BUILDING THIS BAD BOY
 
-YOU WILL NEED TO BUILD OFF NIGHTLY WITH `rustc 1.8.0`
+YOU WILL NEED TO BUILD OFF NIGHTLY WITH `rustc stable`. INSTALL RUST VIA [RUSTUP](https://www.rustup.rs/).
 
 THEN:
 ```
-cargo run
+cargo run -- $HOST:$PORT --ext_addr $HOST:$PORT --api_key $FROG_TIPS_API_KEY
 ```
 
-IMPLEMENTING FROG ON WINDOWS IS TRICKY AND NOT SUPPORTED BY FROG SYSTEMS' HELP
-LINE.
+IF YOU DO NOT HAVE A FROG.TIPS API KEY, DON'T WORRY: FROG WILL FIND YOU ONE.
