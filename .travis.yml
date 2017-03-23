@@ -13,26 +13,10 @@ env:
     - TARGET=x86_64-unknown-linux-gnu
 
 rust:
-  - 1.8.0
   - stable
-
-addons:
-  apt:
-    packages:
-      - libssl-dev
 
 matrix:
   include:
-    - os: linux
-      rust: 1.8.0
-      env: TARGET=i686-unknown-linux-musl
-    - os: linux
-      rust: 1.8.0
-      env: TARGET=x86_64-unknown-linux-gnu
-    - os: linux
-      rust: 1.8.0
-      env: TARGET=x86_64-unknown-linux-musl
-  allow_failures:
     - os: linux
       rust: stable
       env: TARGET=i686-unknown-linux-musl
