@@ -1,8 +1,18 @@
 mod genuine_frog_source {
-    use protocol::{MenuItem,Path,Selected};
+    use protocol::{Menu,MenuItem,Path,Selected};
     use super::menu::{Source,MenuItemIter};
 
-    const SEARCH_PATH: &'static str = "/GENUINEFROG";
+    static SEARCH_PATH: &'static str = "/GENUINEFROG";
+    static WE_REGRET_TO_INFORM_YOU: &'static str = "FROG SYSTEMS REGRETS TO INFORM YOU THAT YOU HAVE A COUNTERFEIT FROG. PLEASE CALL +1 (415) FROG-SYS TO TALK TO OUR SUPPORT STAFF.";
+
+    struct SearchResultsMenu {
+    }
+
+    impl Menu for SearchResultsMenu {
+        fn items(&self) -> Vec<MenuItem> {
+            vec![MenuItem::Info { desc: WE_REGRET_TO_INFORM_YOU.to_string() }]
+        }
+    }
 
     pub struct GenuineFrogSource {
     }
@@ -17,7 +27,7 @@ mod genuine_frog_source {
         fn find(&self, path: &Path) -> Option<Selected> {
             let val = path.val();
             if val.starts_with(SEARCH_PATH) {
-                Some(Selected::Text(Box::new("FROG SYSTEMS REGRETS TO INFORM YOU THAT YOU HAVE A COUNTERFEIT FROG. PLEASE CALL +1 (415) FROG-SYS     TO TALK TO OUR SUPPORT STAFF.".to_string())))
+                Some(Selected::TempMenu(Box::new(SearchResultsMenu {})))
             } else {
                 None
             }
@@ -180,8 +190,8 @@ mod tip_source {
     use itertools::Itertools;
 
 
-    const ROOT_PATH: &'static str = "/TIP/";
-    const SEARCH_PATH: &'static str = "/TIP/SEARCH";
+    static ROOT_PATH: &'static str = "/TIP/";
+    static SEARCH_PATH: &'static str = "/TIP/SEARCH";
 
     fn tips_into_menu_items(tips: &Vec<Tip>) -> Vec<MenuItem> {
         tips.into_iter()
@@ -507,14 +517,14 @@ use self::genuine_frog_source::GenuineFrogSource;
 use protocol::{Selector,Selected,Path,Protocol,ProtocolError,ExternalAddr};
 
 
-const MAX_LINE_LEN: usize = 512;
+static MAX_LINE_LEN: usize = 512;
 
-const README: &'static str = include_str!("../txt/README");
-const FROG_MODELS: &'static str = include_str!("../txt/FROG_MODELS");
-const FIRMWARE_V2: &'static str = include_str!("../txt/FIRMWARE_V2");
-const JOB_OPENINGS: &'static str = include_str!("../txt/JOB_OPENINGS");
-const JOB_OPENINGS_MOD_DATE: &'static str = "8 AUGUST 2016";
-const EVACUATION_PROCEDURE: &'static str = include_str!("../txt/EVACUATION_PROCEDURE");
+static README: &'static str = include_str!("../txt/README");
+static FROG_MODELS: &'static str = include_str!("../txt/FROG_MODELS");
+static FIRMWARE_V2: &'static str = include_str!("../txt/FIRMWARE_V2");
+static JOB_OPENINGS: &'static str = include_str!("../txt/JOB_OPENINGS");
+static JOB_OPENINGS_MOD_DATE: &'static str = "8 AUGUST 2016";
+static EVACUATION_PROCEDURE: &'static str = include_str!("../txt/EVACUATION_PROCEDURE");
 
 pub struct Gopher {
     ext_addr: ExternalAddr,
