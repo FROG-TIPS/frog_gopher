@@ -180,6 +180,7 @@ mod tip_source {
     use hyper;
     use hyper_native_tls;
     use rustc_serialize::json;
+    use hyper_openssl;
 
     use std::io::Read;
     use std::io;
@@ -280,8 +281,9 @@ mod tip_source {
     impl TipSource {
         pub fn new(api_key: String) -> TipSource {
             let client = {
-                // TODO: GET OUT OF MY DREAMS AND INTO MY CAR
-                let ssl = hyper_native_tls::NativeTlsClient::new().unwrap();
+                let mut ssl = hyper_openssl::OpensslClient::new().unwrap();
+                // FIXME: THANKS YOU NERDS FOR MAKING ME DO THIS
+                ssl.danger_disable_hostname_verification(true);
                 let connector = hyper::net::HttpsConnector::new(ssl);
                 let mut client = hyper::Client::with_connector(connector);
                 let ten_seconds = Some(::std::time::Duration::from_secs(10));

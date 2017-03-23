@@ -8,6 +8,7 @@ extern crate itertools;
 extern crate rustc_serialize;
 extern crate hyper;
 extern crate hyper_native_tls;
+extern crate hyper_openssl;
 extern crate getopts;
 extern crate time;
 
