@@ -7,10 +7,9 @@ extern crate itertools;
 #[macro_use]
 extern crate rustc_serialize;
 extern crate hyper;
-extern crate hyper_native_tls;
-extern crate hyper_openssl;
 extern crate getopts;
 extern crate time;
+extern crate reqwest;
 
 mod frog_log;
 mod protocol;

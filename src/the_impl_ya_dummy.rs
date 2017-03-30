@@ -177,10 +177,8 @@ mod text_source {
 }
 
 mod tip_source {
-    use hyper;
-    use hyper_native_tls;
     use rustc_serialize::json;
-    use hyper_openssl;
+    use reqwest;
 
     use std::io::Read;
     use std::io;
@@ -275,23 +273,12 @@ mod tip_source {
 
     pub struct TipSource {
         api_key: String,
-        client: hyper::Client,
+        client: reqwest::Client,
     }
 
     impl TipSource {
         pub fn new(api_key: String) -> TipSource {
-            let client = {
-                let mut ssl = hyper_openssl::OpensslClient::new().unwrap();
-                // FIXME: THANKS YOU NERDS FOR MAKING ME DO THIS
-                ssl.danger_disable_hostname_verification(true);
-                let connector = hyper::net::HttpsConnector::new(ssl);
-                let mut client = hyper::Client::with_connector(connector);
-                let ten_seconds = Some(::std::time::Duration::from_secs(10));
-                client.set_read_timeout(ten_seconds);
-                client.set_write_timeout(ten_seconds);
-                client
-            };
-
+            let client = reqwest::Client::new().unwrap();
             TipSource {
                 api_key: api_key,
                 client: client,
@@ -302,22 +289,22 @@ mod tip_source {
             let url = format!("https://frog.tips/api/2/tips/{}", number);
             let mut resp = try!(
                 self.client.get(&url)
-                           .header(hyper::header::Authorization(self.api_key.clone()))
-                           .header(hyper::header::Connection::close())
+                           .header(reqwest::header::Authorization(self.api_key.clone()))
+                           .header(reqwest::header::Connection::close())
                            .send());
 
-           match resp.status {
-               hyper::Ok => {
-                   let mut body = String::new();
-                   try!(resp.read_to_string(&mut body));
-                   let tip: Tip = try!(json::decode(&body));
-                   Ok(Some(tip))
-               },
-               other => {
-                   warn!("NO TIP FOUND BECAUSE: {:?}", other);
-                   Ok(None)
-               }
-           }
+            {
+                let status = resp.status();
+                if status != &reqwest::StatusCode::Ok {
+                    warn!("NO TIP FOUND BECAUSE: {:?}", status);
+                    return Ok(None);
+                }
+            }
+
+           let mut body = String::new();
+           try!(resp.read_to_string(&mut body));
+           let tip: Tip = try!(json::decode(&body));
+           Ok(Some(tip))
         }
 
         fn all_tips(&self) -> Result<Vec<Tip>, TipError> {
@@ -334,23 +321,23 @@ mod tip_source {
 
             let mut resp = try!(
                 self.client.post("https://frog.tips/api/2/tips/search")
-                           .body(&body)
-                           .header(hyper::header::Authorization(self.api_key.clone()))
-                           .header(hyper::header::Connection::close())
+                           .body(body)
+                           .header(reqwest::header::Authorization(self.api_key.clone()))
+                           .header(reqwest::header::Connection::close())
                            .send());
 
-            match resp.status {
-                hyper::Ok => {
-                    let mut body = String::new();
-                    try!(resp.read_to_string(&mut body));
-                    let results: SearchResults = try!(json::decode(&body));
-                    Ok(results.results)
-                },
-                other => {
-                    warn!("NO TIPS FOUND BECAUSE: {:?}", other);
-                    Ok(vec![])
+            {
+                let status = resp.status();
+                if status != &reqwest::StatusCode::Ok {
+                    warn!("NO TIP FOUND BECAUSE: {:?}", status);
+                    return Ok(vec![]);
                 }
             }
+
+            let mut body = String::new();
+            try!(resp.read_to_string(&mut body));
+            let results: SearchResults = try!(json::decode(&body));
+            Ok(results.results)
         }
     }
 
@@ -409,14 +396,14 @@ mod tip_source {
 
     #[derive(Debug)]
     enum TipError {
-        Network(hyper::error::Error),
+        Network(reqwest::Error),
         Decoding(json::DecoderError),
         Search(json::EncoderError),
         Io(io::Error),
     }
 
-    impl From<hyper::error::Error> for TipError {
-        fn from(err: hyper::error::Error) -> TipError {
+    impl From<reqwest::Error> for TipError {
+        fn from(err: reqwest::Error) -> TipError {
             TipError::Network(err)
         }
     }
