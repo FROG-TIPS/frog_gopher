@@ -10,7 +10,10 @@ mod genuine_frog_source {
 
     impl Menu for SearchResultsMenu {
         fn items(&self) -> Vec<MenuItem> {
-            vec![MenuItem::Info { desc: WE_REGRET_TO_INFORM_YOU.to_string() }]
+            vec![MenuItem::Text {
+                path: Path::from(SEARCH_PATH),
+                desc: WE_REGRET_TO_INFORM_YOU.to_string(),
+            }]
         }
     }
 
