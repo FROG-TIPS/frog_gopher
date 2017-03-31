@@ -5,10 +5,6 @@ sudo: required
 
 env:
   global:
-    - PROJECT_NAME=frog_gopher
-    - MAKE_DEB=yes
-    - DEB_MAINTAINER="FROG SYSTEMS INC <support@frog.tips>"
-    - DEB_DESCRIPTION="EXPLORE THE WONDERFUL WORLD OF FROG TIPS WITH THIS GOPHER SERVER."
     - CRATE_NAME=frog_gopher
     - TARGET=x86_64-unknown-linux-gnu
 
@@ -17,9 +13,6 @@ rust:
 
 matrix:
   include:
-    - os: linux
-      rust: stable
-      env: TARGET=i686-unknown-linux-musl
     - os: linux
       rust: stable
       env: TARGET=x86_64-unknown-linux-gnu

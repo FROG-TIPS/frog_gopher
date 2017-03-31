@@ -1,6 +1,6 @@
 [package]
 name = "frog_gopher"
-version = "0.2.0"
+version = "0.3.3"
 authors = ["Perl I. W. <support@frog.tips>"]
 
 [dependencies]
